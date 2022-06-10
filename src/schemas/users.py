@@ -13,3 +13,7 @@ class User(_UserBase):
 
 class UserCreate(_UserBase):
     password: str
+
+
+class UserInternal(UserCreate, _UserBase):
+    status_id: int = None
