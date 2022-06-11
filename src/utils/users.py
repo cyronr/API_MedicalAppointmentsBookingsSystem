@@ -12,22 +12,36 @@ users_logger = logging.getLogger(f'{get_logger_name()}.utils.users')
 
 
 class UserStatus(int, Enum):
-    ACTIVE = 1
-    CANCELLED = 2
+    ACTIVE = 10
+    CANCELLED = 20
 
 
 class UserEventType(int, Enum):
-    CREATED = 1
-    MODIFIED = 2
+    CREATED = 10
+    MODIFIED = 20
+    CANCELLED = 30
 
 
 def _parse_to_model(db_row):
     try:
-        return user_schema.User(
-            id=db_row["Id"],
-            email=db_row["Email"],
-            uuid=db_row["UUID"]
+        user = user_schema.User(
+            id=db_row['UUID'],
+            email=db_row['Email'],
+            typeId=db_row['TypeId']
         )
+        if db_row['PersonId']:
+            person_info = user_schema.Person(
+                firstname=db_row['Firstname'],
+                surname=db_row['Surname'],
+                phone=db_row['Phone'],
+                identificationNumberType=db_row['IdentificationNumberTypeId'],
+                identificationNumber=db_row['IdentificationNumber'],
+                city=db_row['City'],
+                street=db_row['Street'],
+                zipCode=db_row['ZipCode']
+            )
+            user.personInfo = person_info
+        return user
     except Exception as err:
         users_logger.critical(f'Błąd parsowania użytkownika: {err}')
         raise
@@ -43,34 +57,111 @@ def get_all_users(db):
 
 
 def get_user_by_id(db, user_id):
-    with db.connect().execution_options(isolation_level=IsolationLevel.READ_COMMITTED) as conn:
+    try:
+        with db.connect().execution_options(isolation_level=IsolationLevel.READ_UNCOMMITTED) as conn:
+            result = conn.execute(
+                text(user_sql.get_by_id),
+                {'user_id': user_id}
+            )
+            user = result.fetchone()
+
+            if not user:
+                raise Exception(f'Brak użytkownika w bazie danych (user_id: {user_id})')
+
+        return _parse_to_model(user)
+    except Exception as err:
+        users_logger.error(err)
+        raise
+
+
+def get_user_by_email(db, email):
+    with db.connect().execution_options(isolation_level=IsolationLevel.READ_UNCOMMITTED) as conn:
         result = conn.execute(
-            text(user_sql.get_by_id),
-            {"user_id": user_id}
+            text(user_sql.get_by_email),
+            {'email': email}
         )
         user = result.fetchone()
-    return _parse_to_model(user)
+
+    return _parse_to_model(user) if user else None
+
+
+def get_user_by_uuid(db, uuid):
+    with db.connect().execution_options(isolation_level=IsolationLevel.READ_UNCOMMITTED) as conn:
+        result = conn.execute(
+            text(user_sql.get_by_uuid),
+            {'uuid': uuid}
+        )
+        user = result.fetchone()
+
+    return _parse_to_model(user) if user else None
+
+
+def get_userid_by_uuid(db, uuid):
+    with db.connect().execution_options(isolation_level=IsolationLevel.READ_UNCOMMITTED) as conn:
+        result = conn.execute(
+            text(user_sql.get_by_uuid),
+            {'uuid': uuid}
+        )
+        user = result.fetchone()
+    return user['Id']
+
+
+def get_personid_by_uuid(db, uuid):
+    with db.connect().execution_options(isolation_level=IsolationLevel.READ_UNCOMMITTED) as conn:
+        result = conn.execute(
+            text(user_sql.get_by_uuid),
+            {'uuid': uuid}
+        )
+        user = result.fetchone()
+    return user['PersonId']
 
 
 def create_user(db, user: user_schema.UserCreate):
-    internal_user = user_schema.UserInternal(
+    internal_user = user_schema.InternalUser(
         **user.dict(),
-        status_id=UserStatus.ACTIVE,
+        statusId=UserStatus.ACTIVE,
         uuid=uuid4()
     )
 
-    with db.connect().execution_options(isolation_level=IsolationLevel.REPEATABLE_READ) as conn:
+    with db.connect().execution_options(isolation_level=IsolationLevel.SERIALIZABLE) as conn:
         with conn.begin():
-            user_id = conn.execute(
+            internal_user.id = conn.execute(
                 text(user_sql.create_user),
                 internal_user.dict()
             ).scalar()
 
+            if internal_user.personInfo:
+                internal_user.personId = conn.execute(
+                    text(user_sql.create_person),
+                    internal_user.personInfo.dict()
+                ).scalar()
+
+                conn.execute(
+                    text(user_sql.update_user_by_id),
+                    internal_user.dict()
+                )
+
             conn.execute(
-                text(user_sql.create_event),
+                text(user_sql.create_user_event),
                 {
-                    "user_id": user_id,
-                    "type_id": UserEventType.CREATED
+                    'user_id': internal_user.id,
+                    'type_id': UserEventType.CREATED
                 }
             )
-    return get_user_by_id(db, user_id)
+
+            return get_user_by_id(db, internal_user.id)
+
+
+# def modify_user(db, user: user_schema.User):
+#     internal_user = user_schema.InternalUser(
+#         **user.dict(),
+#         id=get_userid_by_uuid(db, user.id)
+#     )
+#     with db.connect().execution_options(isolation_level=IsolationLevel.SERIALIZABLE) as conn:
+#         with conn.begin():
+#             if user.personInfo:
+#                 conn.execute(
+#                     text(user_sql.update_user_by_id),
+#                     internal_user.personInfo.dict()
+#                 )
+
