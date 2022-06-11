@@ -1,12 +1,14 @@
 import logging
+import os
 from sqlalchemy import text
 from enum import Enum
 from uuid import uuid4
-from src.utils.db import IsolationLevel
+from src.engine.db import IsolationLevel
+from src.engine.logger import get_logger_name
 import src.schemas.users as user_schema
 import src.sql.users as user_sql
 
-users_logger = logging.getLogger('sqlalchemy.utils.users')
+users_logger = logging.getLogger(f'{get_logger_name()}.utils.users')
 
 
 class UserStatus(int, Enum):
@@ -28,13 +30,11 @@ def _parse_to_model(db_row):
 
 
 def get_all_users(db):
-    users_logger.info('start')
     users = []
     with db.connect().execution_options(isolation_level=IsolationLevel.READ_COMMITTED) as conn:
         result = conn.execute(text(user_sql.get_all))
         for row in result:
             users.append(_parse_to_model(row))
-    users_logger.info('end')
     return users
 
 

@@ -1,39 +1,28 @@
-import logging
 from fastapi import FastAPI, status
 from typing import List
-from src.utils.db import get_db
+from src.engine.db import get_db
+from src.engine.logger import get_logger, get_dblogger
 import src.schemas.users as user_schema
 import src.utils.users as user_utils
-
-# logger = logging.getLogger('App')
-# logger.setLevel(logging.INFO)
-# formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-#
-# fh = logging.FileHandler('app.log')
-# fh.setLevel(logging.INFO)
-# fh.setFormatter(formatter)
-#
-# logger.addHandler(fh)
+import configparser
 
 
-db_log_file_name = 'db.log'
-db_handler_log_level = logging.INFO
-db_logger_log_level = logging.DEBUG
-
-db_handler = logging.FileHandler(db_log_file_name)
-db_handler.setLevel(db_handler_log_level)
-
-db_logger = logging.getLogger('sqlalchemy')
-db_logger.addHandler(db_handler)
-db_logger.setLevel(db_logger_log_level)
-
+logger = get_logger()
+get_dblogger()
 db = get_db()
 app = FastAPI()
+
+logger.info('Application Startup')
+config = configparser.ConfigParser()
+
+
+@app.get('/')
+def main():
+    return {"Hello": "API"}
 
 
 @app.get("/users", response_model=List[user_schema.User])
 def get_users():
-    db_logger.info('Wywołanie GET/users')
     return user_utils.get_all_users(db)
 
 
