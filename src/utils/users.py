@@ -1,6 +1,7 @@
 import logging
 from sqlalchemy import text
 from enum import Enum
+from uuid import uuid4
 from src.utils.db import IsolationLevel
 import src.schemas.users as user_schema
 import src.sql.users as user_sql
@@ -48,8 +49,11 @@ def get_user_by_id(db, user_id):
 
 
 def create_user(db, user: user_schema.UserCreate):
-    internal_user = user_schema.UserInternal(**user.dict())
-    internal_user.status_id = UserStatus.ACTIVE
+    internal_user = user_schema.UserInternal(
+        **user.dict(),
+        status_id=UserStatus.ACTIVE,
+        uuid=uuid4()
+    )
 
     with db.connect().execution_options(isolation_level=IsolationLevel.REPEATABLE_READ) as conn:
         with conn.begin():

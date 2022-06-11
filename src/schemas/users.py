@@ -17,3 +17,4 @@ class UserCreate(_UserBase):
 
 class UserInternal(UserCreate, _UserBase):
     status_id: int = None
+    uuid: UUID = None

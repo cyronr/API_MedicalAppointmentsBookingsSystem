@@ -18,12 +18,12 @@ get_by_id = """
 create_user = """
     insert into Users 
     (
-        Email, Password, StatusId
+        UUID, Email, Password, StatusId
     )
     output inserted.id
     values 
     (
-        :email, :password, :status_id
+        :uuid, :email, :password, :status_id
     )
 """
 
