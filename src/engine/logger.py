@@ -56,4 +56,3 @@ def get_dblogger():
         return logger
     else:
         return None
-

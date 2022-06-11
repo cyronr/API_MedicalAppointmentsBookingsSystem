@@ -1,4 +1,4 @@
-from fastapi import FastAPI, status
+from fastapi import FastAPI, status, HTTPException
 from typing import List
 from src.engine.db import get_db
 from src.engine.logger import get_logger, get_dblogger

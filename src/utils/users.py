@@ -1,5 +1,5 @@
 import logging
-import os
+from pydantic import ValidationError
 from sqlalchemy import text
 from enum import Enum
 from uuid import uuid4
@@ -22,11 +22,15 @@ class UserEventType(int, Enum):
 
 
 def _parse_to_model(db_row):
-    return user_schema.User(
+    try:
+        return user_schema.User(
             id=db_row["Id"],
             email=db_row["Email"],
             uuid=db_row["UUID"]
         )
+    except Exception as err:
+        users_logger.critical(f'Błąd parsowania użytkownika: {err}')
+        raise
 
 
 def get_all_users(db):

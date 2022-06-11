@@ -1,9 +1,15 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, validator, EmailStr
 from uuid import UUID
 
 
 class _UserBase(BaseModel):
-    email: str
+    email: EmailStr
+
+    # @validator('email')
+    # def is_email_valid(cls, v):
+    #     if '@' not in v:
+    #         raise ValueError('Niepoprawny adres email')
+    #     return v
 
 
 class User(_UserBase):
