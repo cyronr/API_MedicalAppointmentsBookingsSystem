@@ -40,7 +40,7 @@ class UserCreate(_UserBase):
 
 
 class InternalPersonInfo(PersonInfo):
-    id: int = None
+    personId: int = None
 
 
 class InternalUser(UserCreate, _UserBase):
@@ -48,4 +48,5 @@ class InternalUser(UserCreate, _UserBase):
     statusId: int = None
     personId: int = None
     uuid: UUID = None
+    password: str = None
 

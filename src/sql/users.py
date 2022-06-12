@@ -37,7 +37,7 @@ get_by_id = """
         p.ZipCode ZipCode
     from Users u
     left join Persons p on p.Id = u.PersonId
-    where u.id = :user_id and u.StatusId = 10
+    where u.id = :id and u.StatusId = 10
 """
 
 get_by_email = """
@@ -103,7 +103,7 @@ update_user_by_id = """
     update Users set
         StatusId = :statusId,
         PersonId = :personId
-    where uuid = :id
+    where id = :id
 """
 
 create_person = """
@@ -141,6 +141,6 @@ update_person_by_id = """
         IdentificationNumber = :identificationNumber,
         City = :city,
         Street = :street,
-        ZipCode = :zip
-    where id = :id
+        ZipCode = :zipCode
+    where id = :personId
 """

@@ -41,14 +41,34 @@ def create_user(user: user_schema.UserCreate):
     try:
         if user_utils.get_user_by_email(db, user.email):
             raise Exception('Użytkownik z podanym mailem już istnieje')
+
         return user_utils.create_user(db, user)
+   # except ValueError as err: TODO
     except Exception as err:
         logger.error(err)
         raise HTTPException(status_code=409, detail=str(err))
 
 
-# @app.put('/users', response_model=user_schema.User)
-# def modify_user(user: user_schema.User):
+@app.put('/users', response_model=user_schema.User)
+def modify_user(user: user_schema.User):
+    try:
+        if not user_utils.get_user_by_uuid(db, user.id):
+            raise Exception('Brak użytkownika')
+
+        return user_utils.modify_user(db, user)
+    except Exception as err:
+        logger.error(err)
+        raise HTTPException(status_code=404, detail=str(err))
 
 
+@app.delete('/users/{userId}', status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(user_id):
+    try:
+        user = user_utils.get_user_by_uuid(db, user_id)
+        if not user:
+            raise Exception('Brak użytkownika')
 
+        return user_utils.delete_user(db, user)
+    except Exception as err:
+        logger.error(err)
+        raise HTTPException(status_code=404, detail=str(err))

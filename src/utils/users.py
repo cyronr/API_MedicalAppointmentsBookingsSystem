@@ -30,7 +30,7 @@ def _parse_to_model(db_row):
             typeId=db_row['TypeId']
         )
         if db_row['PersonId']:
-            person_info = user_schema.Person(
+            person_info = user_schema.PersonInfo(
                 firstname=db_row['Firstname'],
                 surname=db_row['Surname'],
                 phone=db_row['Phone'],
@@ -61,7 +61,7 @@ def get_user_by_id(db, user_id):
         with db.connect().execution_options(isolation_level=IsolationLevel.READ_UNCOMMITTED) as conn:
             result = conn.execute(
                 text(user_sql.get_by_id),
-                {'user_id': user_id}
+                {'id': user_id}
             )
             user = result.fetchone()
 
@@ -94,26 +94,6 @@ def get_user_by_uuid(db, uuid):
         user = result.fetchone()
 
     return _parse_to_model(user) if user else None
-
-
-def get_userid_by_uuid(db, uuid):
-    with db.connect().execution_options(isolation_level=IsolationLevel.READ_UNCOMMITTED) as conn:
-        result = conn.execute(
-            text(user_sql.get_by_uuid),
-            {'uuid': uuid}
-        )
-        user = result.fetchone()
-    return user['Id']
-
-
-def get_personid_by_uuid(db, uuid):
-    with db.connect().execution_options(isolation_level=IsolationLevel.READ_UNCOMMITTED) as conn:
-        result = conn.execute(
-            text(user_sql.get_by_uuid),
-            {'uuid': uuid}
-        )
-        user = result.fetchone()
-    return user['PersonId']
 
 
 def create_user(db, user: user_schema.UserCreate):
@@ -152,16 +132,71 @@ def create_user(db, user: user_schema.UserCreate):
             return get_user_by_id(db, internal_user.id)
 
 
-# def modify_user(db, user: user_schema.User):
-#     internal_user = user_schema.InternalUser(
-#         **user.dict(),
-#         id=get_userid_by_uuid(db, user.id)
-#     )
-#     with db.connect().execution_options(isolation_level=IsolationLevel.SERIALIZABLE) as conn:
-#         with conn.begin():
-#             if user.personInfo:
-#                 conn.execute(
-#                     text(user_sql.update_user_by_id),
-#                     internal_user.personInfo.dict()
-#                 )
+def modify_user(db, user: user_schema.User):
+    internal_user = user_schema.InternalUser(
+        **user.dict()
+    )
+    internal_person_info = user_schema.InternalPersonInfo(
+        **user.personInfo.dict()
+    )
+    with db.connect().execution_options(isolation_level=IsolationLevel.SERIALIZABLE) as conn:
+        result = conn.execute(
+            text(user_sql.get_by_uuid),
+            {'uuid': user.id}
+        )
+        dbuser = result.fetchone()
+        internal_user.id = dbuser['UserId']
+        internal_user.personId = dbuser['PersonId']
+        internal_user.statusId = dbuser['StatusId']
+        internal_person_info.personId = internal_user.personId
 
+        with conn.begin():
+            if user.personInfo:
+                conn.execute(
+                    text(user_sql.update_person_by_id),
+                    internal_person_info.dict()
+                )
+
+            conn.execute(
+                text(user_sql.update_user_by_id),
+                internal_user.dict()
+            )
+
+            conn.execute(
+                text(user_sql.create_user_event),
+                {
+                    'user_id': internal_user.id,
+                    'type_id': UserEventType.MODIFIED
+                }
+            )
+            return get_user_by_id(db, internal_user.id)
+
+
+def delete_user(db, user):
+    internal_user = user_schema.InternalUser(
+        **user.dict()
+    )
+    with db.connect().execution_options(isolation_level=IsolationLevel.SERIALIZABLE) as conn:
+        result = conn.execute(
+            text(user_sql.get_by_uuid),
+            {'uuid': user.id}
+        )
+        dbuser = result.fetchone()
+        internal_user.id = dbuser['UserId']
+        internal_user.statusId = UserStatus.CANCELLED
+
+        with conn.begin():
+            conn.execute(
+                text(user_sql.update_user_by_id),
+                internal_user.dict()
+            )
+
+            conn.execute(
+                text(user_sql.create_user_event),
+                {
+                    'user_id': internal_user.id,
+                    'type_id': UserEventType.CANCELLED
+                }
+            )
+
+            return {}
