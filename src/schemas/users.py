@@ -1,4 +1,5 @@
 from pydantic import BaseModel, validator, EmailStr
+from typing import Optional
 from uuid import UUID
 
 
@@ -6,11 +7,11 @@ class PersonInfo(BaseModel):
     firstname: str
     surname: str
     phone: str
-    identificationNumber: str = None
-    identificationNumberType: int = 10
-    city: str = None
-    street: str = None
-    zipCode: str = None
+    identificationNumber: Optional[str]
+    identificationNumberType: Optional[int] = 10
+    city: Optional[str]
+    street: Optional[str]
+    zipCode: Optional[str]
 
     @validator('phone')
     def phone_must_be_numeric(cls, v):

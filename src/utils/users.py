@@ -1,10 +1,10 @@
 import logging
-from pydantic import ValidationError
 from sqlalchemy import text
 from enum import Enum
 from uuid import uuid4
 from src.engine.db import IsolationLevel
 from src.engine.logger import get_logger_name
+from src.engine.errors import ParsingError
 import src.schemas.users as user_schema
 import src.sql.users as user_sql
 
@@ -43,8 +43,9 @@ def _parse_to_model(db_row):
             user.personInfo = person_info
         return user
     except Exception as err:
-        users_logger.critical(f'Błąd parsowania użytkownika: {err}')
-        raise
+        msg = f'Błąd parsowania użytkownika: {err}'
+        users_logger.critical(msg)
+        raise ParsingError(msg)
 
 
 def get_all_users(db):
@@ -198,5 +199,4 @@ def delete_user(db, user):
                     'type_id': UserEventType.CANCELLED
                 }
             )
-
-            return {}
+    return {}
