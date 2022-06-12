@@ -1,4 +1,5 @@
 from fastapi import FastAPI, status, HTTPException
+from starlette.responses import RedirectResponse
 from typing import List
 from src.engine.db import get_db
 from src.engine.logger import get_logger, get_dblogger
@@ -15,8 +16,8 @@ logger.info('Application Startup')
 
 
 @app.get('/')
-def main():
-    return 'Welcome to API for Medical Appointments System'
+def docs_redirect():
+    return RedirectResponse(url='/docs')
 
 
 @app.get('/users', response_model=List[user_schema.User])
