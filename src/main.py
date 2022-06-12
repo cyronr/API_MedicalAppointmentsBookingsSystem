@@ -31,9 +31,9 @@ def get_user(user_id):
     try:
         user = user_utils.get_user_by_uuid(db, user_id)
         if not user:
-            raise Exception('Brak użytkownika')
+            raise errors.NotFound('Brak użytkownika')
         return user
-    except Exception as err:
+    except errors.NotFound as err:
         logger.error(err)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(err))
 
@@ -42,13 +42,10 @@ def get_user(user_id):
 def create_user(user: user_schema.UserCreate):
     try:
         if user_utils.get_user_by_email(db, user.email):
-            raise Exception('Użytkownik z podanym mailem już istnieje')
+            raise errors.UserAlreadyExists('Użytkownik z podanym mailem już istnieje')
 
         return user_utils.create_user(db, user)
-    except errors.ParsingError as err:
-        logger.error(err)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail='Błąd')
-    except Exception as err:
+    except errors.UserAlreadyExists as err:
         logger.error(err)
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(err))
 
@@ -57,10 +54,10 @@ def create_user(user: user_schema.UserCreate):
 def modify_user(user: user_schema.User):
     try:
         if not user_utils.get_user_by_uuid(db, user.id):
-            raise Exception('Brak użytkownika')
+            raise errors.NotFound('Brak użytkownika')
 
         return user_utils.modify_user(db, user)
-    except Exception as err:
+    except errors.NotFound as err:
         logger.error(err)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(err))
 
@@ -70,9 +67,9 @@ def delete_user(user_id):
     try:
         user = user_utils.get_user_by_uuid(db, user_id)
         if not user:
-            raise Exception('Brak użytkownika')
+            raise errors.NotFound('Brak użytkownika')
 
         return user_utils.delete_user(db, user)
-    except Exception as err:
+    except errors.NotFound as err:
         logger.error(err)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(err))
