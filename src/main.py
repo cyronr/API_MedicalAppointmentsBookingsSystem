@@ -9,11 +9,11 @@ import src.utils.users as user_utils
 
 
 logger = get_logger()
+logger.info('Application Startup')
+
 db_logger = get_dblogger()
 db = get_db()
 app = FastAPI()
-
-logger.info('Application Startup')
 
 
 @app.get('/')

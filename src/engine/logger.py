@@ -31,7 +31,7 @@ def get_level():
 
 
 def get_formatter():
-    return logging.Formatter(' %(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    return logging.Formatter(' %(asctime)s | %(name)s | %(levelname)s | %(message)s')
 
 
 def get_file():
