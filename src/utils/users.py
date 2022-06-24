@@ -8,7 +8,7 @@ from src.engine.errors import ParsingError
 import src.schemas.users as user_schema
 import src.sql.users as user_sql
 
-users_logger = logging.getLogger(f'{get_logger_name()}.utils.users')
+logger = logging.getLogger(f'{get_logger_name()}.utils.users')
 
 
 class UserStatus(int, Enum):
@@ -44,7 +44,7 @@ def _parse_to_model(db_row):
         return user
     except Exception as err:
         msg = f'Błąd parsowania użytkownika: {err}'
-        users_logger.critical(msg)
+        logger.critical(msg)
         raise ParsingError(msg)
 
 
@@ -71,7 +71,7 @@ def get_user_by_id(db, user_id):
 
         return _parse_to_model(user)
     except Exception as err:
-        users_logger.error(err)
+        logger.error(err)
         raise
 
 

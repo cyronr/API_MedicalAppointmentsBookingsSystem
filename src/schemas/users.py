@@ -6,23 +6,19 @@ from uuid import UUID
 class PersonInfo(BaseModel):
     firstname: str
     surname: str
-    phone: str
+    phone: Optional[str]
     identificationNumber: Optional[str]
-    identificationNumberType: Optional[int] = 10
+    identificationNumberType: Optional[int]
     city: Optional[str]
     street: Optional[str]
     zipCode: Optional[str]
 
     @validator('phone')
     def phone_must_be_numeric(cls, v):
+        if not v:
+            return v
         if not v.isnumeric():
             raise ValueError('Numer telefonu musi składać się z samych cyfr')
-        return v
-
-    @validator('identificationNumberType')
-    def id_number_has_to_have_type(cls, v, values, **kwargs):
-        if 'identificationNumber' in values and v is None:
-            raise ValueError('Nieokreślony typ identyfikatora')
         return v
 
 
@@ -38,6 +34,13 @@ class User(_UserBase):
 
 class UserCreate(_UserBase):
     password: str
+    password_confirm: str
+
+    @validator('password_confirm')
+    def passwords_must_match(cls, v, values, **kwargs):
+        if 'password' in values and v != values['password']:
+            raise ValueError('Hasła się nie zgadzają')
+        return v
 
 
 class InternalPersonInfo(PersonInfo):
